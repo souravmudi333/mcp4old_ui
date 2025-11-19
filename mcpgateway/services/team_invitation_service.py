@@ -20,6 +20,7 @@ Examples:
 from datetime import timedelta
 import secrets
 from typing import List, Optional
+from sqlalchemy.exc import IntegrityError
 
 # Third-Party
 from sqlalchemy.orm import Session
@@ -238,7 +239,9 @@ class TeamInvitationService:
             logger.error(f"Failed to get invitation by token: {e}")
             return None
 
-    async def accept_invitation(self, token: str, accepting_user_email: Optional[str] = None) -> bool:
+    from sqlalchemy.exc import IntegrityError
+
+    async def accept_invitation(self, token: str, accepting_user_email: Optional[str] = None) -> Optional[EmailTeamMember]:
         """Accept a team invitation.
 
         Args:
@@ -246,14 +249,11 @@ class TeamInvitationService:
             accepting_user_email: Email of user accepting (for validation)
 
         Returns:
-            bool: True if invitation was accepted successfully, False otherwise
+            Optional[EmailTeamMember]: Created team membership, or None if not accepted
 
         Raises:
-            ValueError: If invitation is invalid or expired
-            Exception: If acceptance fails
-
-        Examples:
-            Users can accept invitations to join teams.
+            ValueError: If invitation is invalid, expired, or user already member
+            Exception: If acceptance fails unexpectedly
         """
         try:
             # Get the invitation
@@ -269,44 +269,79 @@ class TeamInvitationService:
 
             # Validate accepting user email if provided
             if accepting_user_email and accepting_user_email != invitation.email:
-                logger.warning(f"Email mismatch: invitation for {invitation.email}, accepting as {accepting_user_email}")
+                logger.warning(
+                    f"Email mismatch: invitation for {invitation.email}, accepting as {accepting_user_email}"
+                )
                 raise ValueError("Email address does not match invitation")
 
             # Check if user exists (if email provided, they must exist)
             if accepting_user_email:
-                user = self.db.query(EmailUser).filter(EmailUser.email == accepting_user_email).first()
+                user = (
+                    self.db.query(EmailUser)
+                    .filter(EmailUser.email == accepting_user_email)
+                    .first()
+                )
                 if not user:
                     logger.warning(f"User {accepting_user_email} not found")
                     raise ValueError("User account not found")
 
             # Check if team still exists
-            team = self.db.query(EmailTeam).filter(EmailTeam.id == invitation.team_id, EmailTeam.is_active.is_(True)).first()
-
+            team = (
+                self.db.query(EmailTeam)
+                .filter(EmailTeam.id == invitation.team_id, EmailTeam.is_active.is_(True))
+                .first()
+            )
             if not team:
                 logger.warning(f"Team {invitation.team_id} not found or inactive")
                 raise ValueError("Team not found or inactive")
 
-            # Check if user is already a member
+            # Check if user is already a member (ANY membership, active or inactive)
             existing_member = (
-                self.db.query(EmailTeamMember).filter(EmailTeamMember.team_id == invitation.team_id, EmailTeamMember.user_email == invitation.email, EmailTeamMember.is_active.is_(True)).first()
+                self.db.query(EmailTeamMember)
+                .filter(
+                    EmailTeamMember.team_id == invitation.team_id,
+                    EmailTeamMember.user_email == invitation.email,
+                )
+                .first()
             )
 
             if existing_member:
-                logger.warning(f"User {invitation.email} is already a member of team {invitation.team_id}")
+                logger.warning(
+                    f"User {invitation.email} is already a member of team {invitation.team_id}"
+                )
                 # Deactivate the invitation since they're already a member
                 invitation.is_active = False
                 self.db.commit()
+                # Surface this as a validation error, not a 500
                 raise ValueError("User is already a member of this team")
 
             # Check team member limit
             if team.max_members:
-                current_member_count = self.db.query(EmailTeamMember).filter(EmailTeamMember.team_id == invitation.team_id, EmailTeamMember.is_active.is_(True)).count()
+                current_member_count = (
+                    self.db.query(EmailTeamMember)
+                    .filter(
+                        EmailTeamMember.team_id == invitation.team_id,
+                        EmailTeamMember.is_active.is_(True),
+                    )
+                    .count()
+                )
                 if current_member_count >= team.max_members:
-                    logger.warning(f"Team {invitation.team_id} has reached maximum member limit")
-                    raise ValueError(f"Team has reached maximum member limit of {team.max_members}")
+                    logger.warning(
+                        f"Team {invitation.team_id} has reached maximum member limit"
+                    )
+                    raise ValueError(
+                        f"Team has reached maximum member limit of {team.max_members}"
+                    )
 
             # Create team membership
-            membership = EmailTeamMember(team_id=invitation.team_id, user_email=invitation.email, role=invitation.role, joined_at=utc_now(), invited_by=invitation.invited_by, is_active=True)
+            membership = EmailTeamMember(
+                team_id=invitation.team_id,
+                user_email=invitation.email,
+                role=invitation.role,
+                joined_at=utc_now(),
+                invited_by=invitation.invited_by,
+                is_active=True,
+            )
 
             self.db.add(membership)
 
@@ -314,10 +349,22 @@ class TeamInvitationService:
             invitation.is_active = False
 
             self.db.commit()
+            self.db.refresh(membership)
 
-            logger.info(f"User {invitation.email} accepted invitation to team {invitation.team_id}")
-            return True
+            logger.info(
+                f"User {invitation.email} accepted invitation to team {invitation.team_id}"
+            )
+            return membership
 
+        except ValueError:
+            # Validation errors are intentional; let the caller handle them
+            self.db.rollback()
+            raise
+        except IntegrityError as e:
+            # Safety net: if some unique constraint still trips, report as validation
+            self.db.rollback()
+            logger.error(f"Integrity error while accepting invitation: {e}")
+            raise ValueError("User is already a member of this team") from e
         except Exception as e:
             self.db.rollback()
             logger.error(f"Failed to accept invitation: {e}")

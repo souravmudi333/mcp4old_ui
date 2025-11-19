@@ -305,6 +305,7 @@ class Settings(BaseSettings):
     allowed_origins: Annotated[Set[str], NoDecode] = {
         "http://localhost",
         "http://localhost:4444",
+        "*"
     }
 
     # Security validation thresholds

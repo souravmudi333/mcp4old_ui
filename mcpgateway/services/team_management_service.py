@@ -17,6 +17,8 @@ Examples:
     True
 """
 
+from sqlalchemy import func
+
 # Standard
 from datetime import timedelta
 from typing import List, Optional, Tuple
@@ -74,6 +76,18 @@ class TeamManagementService:
             'TeamManagementService'
         """
         self.db = db
+
+    def get_member_count(self, team_id: str) -> int:
+        """Return the count of active members for a team (safe DB-side count)."""
+        try:
+            # normalize team_id if you already implemented normalization in other methods
+            return self.db.query(func.count()).select_from(EmailTeamMember).filter(
+                EmailTeamMember.team_id == team_id,
+                EmailTeamMember.is_active.is_(True)
+            ).scalar() or 0
+        except Exception:
+            # Fall back to 0 on error but log in caller as needed
+            return 0
 
     async def create_team(self, name: str, description: Optional[str], created_by: str, visibility: str = "private", max_members: Optional[int] = None) -> EmailTeam:
         """Create a new team.
@@ -496,7 +510,7 @@ class TeamManagementService:
             logger.error(f"Failed to remove {user_email} from team {team_id}: {e}")
             return False
 
-    async def update_member_role(self, team_id: str, user_email: str, new_role: str, updated_by: Optional[str] = None) -> bool:
+    async def update_member_role(self, team_id: str, user_email: str, new_role: str, updated_by: Optional[str] = None) -> EmailTeamMember:
         """Update a team member's role.
 
         Args:
@@ -550,7 +564,7 @@ class TeamManagementService:
             self.db.commit()
 
             logger.info(f"Updated role of {user_email} in team {team_id} to {new_role} by {updated_by}")
-            return True
+            return membership
 
         except Exception as e:
             self.db.rollback()

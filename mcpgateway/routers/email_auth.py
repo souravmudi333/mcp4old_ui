@@ -19,12 +19,13 @@ Examples:
 
 # Standard
 from datetime import datetime, timedelta, UTC
-from typing import Optional
+from typing import Optional, Dict, Any    
 
 # Third-Party
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
+from mcpgateway.middleware.rbac import get_current_user_with_permissions
 
 # First-Party
 from mcpgateway.auth import get_current_user
@@ -397,7 +398,7 @@ async def get_auth_events(limit: int = 50, offset: int = 0, current_user: EmailU
 # Admin-only endpoints
 @email_auth_router.get("/admin/users", response_model=UserListResponse)
 @require_permission("admin.user_management")
-async def list_users(limit: int = 100, offset: int = 0, current_user: EmailUser = Depends(get_current_user), db: Session = Depends(get_db)):
+async def list_users(limit: int = 100, offset: int = 0, user = Depends(get_current_user_with_permissions), db: Session = Depends(get_db)):
     """List all users (admin only).
 
     Args:
@@ -432,42 +433,24 @@ async def list_users(limit: int = 100, offset: int = 0, current_user: EmailUser 
 
 @email_auth_router.get("/admin/events", response_model=list[AuthEventResponse])
 @require_permission("admin.user_management")
-async def list_all_auth_events(limit: int = 100, offset: int = 0, user_email: Optional[str] = None, current_user: EmailUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    """List authentication events for all users (admin only).
-
-    Args:
-        limit: Maximum number of events to return
-        offset: Number of events to skip
-        user_email: Filter events by specific user email
-        current_user: Currently authenticated user
-        db: Database session
-
-    Returns:
-        List[AuthEventResponse]: Authentication events
-
-    Raises:
-        HTTPException: If user is not admin
-
-    Examples:
-        >>> # GET /auth/email/admin/events?limit=50&user_email=user@example.com
-        >>> # Headers: Authorization: Bearer <admin_token>
-    """
-
+async def list_all_auth_events(
+    limit: int = 100,
+    offset: int = 0,
+    user_email: Optional[str] = None,
+    user = Depends(get_current_user_with_permissions),  # ✅ provides the dict with email/db/ip/user_agent
+    db: Session = Depends(get_db),
+):
     auth_service = EmailAuthService(db)
-
     try:
         events = await auth_service.get_auth_events(email=user_email, limit=limit, offset=offset)
-
         return [AuthEventResponse.model_validate(event) for event in events]
-
     except Exception as e:
         logger.error(f"Error getting auth events: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve authentication events")
-
+        raise HTTPException(status_code=500, detail="Failed to retrieve authentication events")
 
 @email_auth_router.post("/admin/users", response_model=EmailUserResponse, status_code=status.HTTP_201_CREATED)
 @require_permission("admin.user_management")
-async def create_user(user_request: EmailRegistrationRequest, current_user: EmailUser = Depends(get_current_user), db: Session = Depends(get_db)):
+async def create_user(user_request: EmailRegistrationRequest, user = Depends(get_current_user_with_permissions), db: Session = Depends(get_db)):
     """Create a new user account (admin only).
 
     Args:
@@ -502,7 +485,7 @@ async def create_user(user_request: EmailRegistrationRequest, current_user: Emai
             auth_provider="local",
         )
 
-        logger.info(f"Admin {current_user.email} created user: {user.email}")
+        logger.info(f"Admin {user.email} created user: {user.email}")
 
         return EmailUserResponse.from_email_user(user)
 
@@ -519,7 +502,7 @@ async def create_user(user_request: EmailRegistrationRequest, current_user: Emai
 
 @email_auth_router.get("/admin/users/{user_email}", response_model=EmailUserResponse)
 @require_permission("admin.user_management")
-async def get_user(user_email: str, current_user: EmailUser = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_user(user_email: str, user = Depends(get_current_user_with_permissions), db: Session = Depends(get_db)):
     """Get user by email (admin only).
 
     Args:
@@ -549,64 +532,60 @@ async def get_user(user_email: str, current_user: EmailUser = Depends(get_curren
 
 @email_auth_router.put("/admin/users/{user_email}", response_model=EmailUserResponse)
 @require_permission("admin.user_management")
-async def update_user(user_email: str, user_request: EmailRegistrationRequest, current_user: EmailUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Update user information (admin only).
-
-    Args:
-        user_email: Email of user to update
-        user_request: Updated user information
-        current_user: Currently authenticated admin user
-        db: Database session
-
-    Returns:
-        EmailUserResponse: Updated user information
-
-    Raises:
-        HTTPException: If user not found or update fails
-    """
+async def update_user(
+    user_email: str,
+    user_request: EmailRegistrationRequest,
+    admin_ctx: Dict[str, Any] = Depends(get_current_user_with_permissions),
+    db: Session = Depends(get_db),
+):
     auth_service = EmailAuthService(db)
 
     try:
-        # Get existing user
-        user = await auth_service.get_user_by_email(user_email)
-        if not user:
+        target_user = await auth_service.get_user_by_email(user_email)
+        if not target_user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        # Update user fields
-        user.full_name = user_request.full_name
-        user.is_admin = getattr(user_request, "is_admin", user.is_admin)
+        # Apply updates (guard for None so we don't overwrite accidentally)
+        if getattr(user_request, "full_name", None) is not None:
+            target_user.full_name = user_request.full_name
 
-        # Update password if provided
-        if user_request.password:
+        if hasattr(user_request, "is_admin"):
+            target_user.is_admin = bool(user_request.is_admin)
+
+        if getattr(user_request, "password", None):
             await auth_service.change_password(
                 email=user_email,
-                old_password=None,  # Admin can change without old password
+                old_password=None,
                 new_password=user_request.password,
                 ip_address="admin_update",
                 user_agent="admin_panel",
-                skip_old_password_check=True,
+                skip_old_password_check=True 
             )
 
         db.commit()
-        db.refresh(user)
+        db.refresh(target_user)
 
-        logger.info(f"Admin {current_user.email} updated user: {user.email}")
+        logger.info("Admin %s updated user: %s",target_user.email)
+        return EmailUserResponse.from_email_user(target_user)
 
-        return EmailUserResponse.from_email_user(user)
-
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error updating user {user_email}: {e}")
+        logger.error("Error updating user %s: %s", user_email, e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update user")
-
 
 @email_auth_router.delete("/admin/users/{user_email}", response_model=SuccessResponse)
 @require_permission("admin.user_management")
-async def delete_user(user_email: str, current_user: EmailUser = Depends(get_current_user), db: Session = Depends(get_db)):
+async def delete_user(
+    user_email: str,
+    admin_ctx: Dict[str, Any] = Depends(get_current_user_with_permissions),
+    db: Session = Depends(get_db),
+):
     """Delete/deactivate user (admin only).
 
     Args:
         user_email: Email of user to delete
-        current_user: Currently authenticated admin user
+        admin_ctx: Admin context returned by dependency (dictionary)
         db: Database session
 
     Returns:
@@ -618,8 +597,10 @@ async def delete_user(user_email: str, current_user: EmailUser = Depends(get_cur
     auth_service = EmailAuthService(db)
 
     try:
+        admin_email = admin_ctx.get("email")
+
         # Prevent admin from deleting themselves
-        if user_email == current_user.email:
+        if user_email == admin_email:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own account")
 
         # Prevent deleting the last active admin user
@@ -629,10 +610,12 @@ async def delete_user(user_email: str, current_user: EmailUser = Depends(get_cur
         # Hard delete using auth service
         await auth_service.delete_user(user_email)
 
-        logger.info(f"Admin {current_user.email} deleted user: {user_email}")
+        logger.info("Admin %s deleted user: %s", admin_email, user_email)
 
         return SuccessResponse(success=True, message=f"User {user_email} has been deleted")
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error deleting user {user_email}: {e}")
+        logger.error("Error deleting user %s: %s", user_email, e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete user")
