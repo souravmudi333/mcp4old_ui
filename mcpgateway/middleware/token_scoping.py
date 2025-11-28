@@ -316,6 +316,11 @@ class TokenScopingMiddleware:
             ("POST", r"^/prompts(?:$|/)"): Permissions.PROMPTS_CREATE,
             ("PUT", r"^/prompts/[^/]+(?:$|/)"): Permissions.PROMPTS_UPDATE,
             ("DELETE", r"^/prompts/[^/]+(?:$|/)"): Permissions.PROMPTS_DELETE,
+            # Gateway Management permissions
+            ("GET", r"^/gateways(?:$|/)"): Permissions.GATEWAY_READ,
+            ("POST", r"^/gateways(?:$|/)"): Permissions.GATEWAY_CREATE,
+            ("PUT", r"^/gateways/[^/]+(?:$|/)"): Permissions.GATEWAY_UPDATE,
+            ("DELETE", r"^/gateways/[^/]+(?:$|/)"): Permissions.GATEWAY_DELETE,
             # Server management permissions
             ("GET", r"^/servers(?:$|/)"): Permissions.SERVERS_READ,
             ("POST", r"^/servers(?:$|/)"): Permissions.SERVERS_CREATE,

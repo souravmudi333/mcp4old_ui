@@ -113,34 +113,32 @@ async def list_roles(
     user=Depends(get_current_user_with_permissions),
     db: Session = Depends(get_db),
 ):
-    """List all roles.
-
-    Args:
-        scope: Optional scope filter
-        active_only: Whether to show only active roles
-        user: Current authenticated user
-        db: Database session
-
-    Returns:
-        List[RoleResponse]: List of roles
-
-    Raises:
-        HTTPException: If user lacks required permissions
-
-    Examples:
-        >>> import asyncio
-        >>> asyncio.iscoroutinefunction(list_roles)
-        True
+    """
+    List all roles (optionally filter by scope and active status).
     """
     try:
         role_service = RoleService(db)
-        roles = await role_service.list_roles(scope=scope, active_only=active_only)
+
+        # active_only=True  => include_inactive=False
+        # active_only=False => include_inactive=True
+        include_inactive = not active_only
+
+        # You can also expose include_system as a query param if you want,
+        # for now we'll keep the default include_system=True.
+        roles = await role_service.list_roles(
+            scope=scope,
+            include_system=True,
+            include_inactive=include_inactive,
+        )
 
         return [RoleResponse.from_orm(role) for role in roles]
 
     except Exception as e:
         logger.error(f"Failed to list roles: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve roles")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve roles",
+        )
 
 
 @router.get("/roles/{role_id}", response_model=RoleResponse)

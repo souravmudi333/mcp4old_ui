@@ -565,7 +565,11 @@ class TokenCatalogService:
             return False
 
         # Mark token as inactive
-        token.is_active = False
+        #token.is_active = False
+
+        self.db.delete(token)
+        self.db.commit()
+
 
         # Add to blacklist
         revocation = TokenRevocation(jti=token.jti, revoked_by=revoked_by, reason=reason)

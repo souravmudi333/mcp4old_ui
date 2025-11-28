@@ -110,7 +110,7 @@ class PermissionService:
 
             # Get user's effective permissions from roles
             user_permissions = await self.get_user_permissions(user_email, team_id)
-
+           
             # Check if user has the specific permission or wildcard
             granted = permission in user_permissions or Permissions.ALL_PERMISSIONS in user_permissions
 
@@ -140,6 +140,85 @@ class PermissionService:
             logger.error(f"Error checking permission for {user_email}: {e}")
             # Default to deny on error
             return False
+
+    # async def check_permission(
+    #     self,
+    #     user_email: str,
+    #     permission: str,
+    #     resource_type: Optional[str] = None,
+    #     resource_id: Optional[str] = None,
+    #     team_id: Optional[str] = None,
+    #     ip_address: Optional[str] = None,
+    #     user_agent: Optional[str] = None,
+    # ) -> bool:
+    #     """Instrumented permission check with debug logging to diagnose failures."""
+    #     try:
+    #         logger.debug(
+    #             "check_permission START: user=%s permission=%s resource_type=%s resource_id=%s team_id=%s ip=%s ua=%s",
+    #             user_email, permission, resource_type, resource_id, team_id, ip_address, user_agent
+    #         )
+
+    #         # 1) Admin shortcut
+    #         is_admin = await self._is_user_admin(user_email)
+    #         logger.debug("check_permission: is_admin=%s for user=%s", is_admin, user_email)
+    #         if is_admin:
+    #             return True
+
+    #         # 2) Get user's effective permissions
+    #         user_permissions = await self.get_user_permissions(user_email, team_id)
+    #         # Defensive: ensure it's iterable
+    #         if user_permissions is None:
+    #             user_permissions = set()
+    #         logger.debug("check_permission: user_permissions for %s (team=%s) = %s", user_email, team_id, list(user_permissions)[:50])
+
+    #         # 3) Direct match or wildcard
+    #         wildcard_present = Permissions.ALL_PERMISSIONS in user_permissions
+    #         direct_match = permission in user_permissions
+    #         logger.debug("check_permission: direct_match=%s wildcard_present=%s", direct_match, wildcard_present)
+
+    #         granted = direct_match or wildcard_present
+
+    #         # 4) Team fallback for teams.* if still not granted
+    #         fallback_result = False
+    #         if not granted and permission.startswith("teams."):
+    #             fallback_result = await self._check_team_fallback_permissions(user_email, permission, team_id)
+    #             logger.debug("check_permission: team_fallback_result=%s for permission=%s team_id=%s", fallback_result, permission, team_id)
+    #             granted = granted or fallback_result
+
+    #         # 5) Audit roles (but still log even if audit disabled)
+    #         try:
+    #             roles_for_audit = await self._get_roles_for_audit(user_email, team_id)
+    #         except Exception as e:
+    #             roles_for_audit = None
+    #             logger.exception("check_permission: failed to get roles_for_audit for %s team=%s: %s", user_email, team_id, e)
+
+    #         # 6) Audit log if enabled (keeps original behavior)
+    #         if self.audit_enabled:
+    #             await self._log_permission_check(
+    #                 user_email=user_email,
+    #                 permission=permission,
+    #                 resource_type=resource_type,
+    #                 resource_id=resource_id,
+    #                 team_id=team_id,
+    #                 granted=granted,
+    #                 roles_checked=roles_for_audit,
+    #                 ip_address=ip_address,
+    #                 user_agent=user_agent,
+    #             )
+
+    #         logger.debug(
+    #             "check_permission END: user=%s permission=%s team=%s granted=%s roles=%s fallback=%s",
+    #             user_email, permission, team_id, granted, roles_for_audit, fallback_result
+    #         )
+
+    #         return granted
+
+    #     except Exception as e:
+    #         # Log the full exception + stack so we can see unexpected errors
+    #         logger.exception("Error checking permission for %s (permission=%s, team=%s): %s", user_email, permission, team_id, e)
+    #         # Default to deny on error (keep current behavior)
+    #         return False
+
 
     async def get_user_permissions(self, user_email: str, team_id: Optional[str] = None) -> Set[str]:
         """Get all effective permissions for a user.

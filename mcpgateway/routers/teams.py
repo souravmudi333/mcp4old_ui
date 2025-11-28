@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# import sys,os
+# print("STARTUP: teams.py loaded from:", __file__, "pid=", os.getpid(), file=sys.stderr, flush=True)
 """Location: ./mcpgateway/routers/teams.py
 Copyright 2025
 SPDX-License-Identifier: Apache-2.0
@@ -20,15 +22,15 @@ Examples:
 """
 
 # Standard
-from typing import Any, cast, List
-
+from typing import Any, cast, List, Optional
+from fastapi.responses import JSONResponse
 # Third-Party
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 # First-Party
 from mcpgateway.auth import get_current_user
-from mcpgateway.db import get_db, EmailTeamMember
+from mcpgateway.db import get_db, EmailTeamMember, EmailTeam
 from mcpgateway.middleware.rbac import get_current_user_with_permissions, require_permission
 from mcpgateway.schemas import (
     EmailUserResponse,
@@ -172,113 +174,60 @@ async def list_teams(
         logger.error(f"Error listing teams: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list teams")
 
+#------------------------
+# Discover Public Teams
+#------------------------
 
-# @teams_router.get("/{team_id}", response_model=TeamResponse)
-# @require_permission("teams.read")
-# async def get_team(team_id: str, current_user: EmailUserResponse = Depends(get_current_user_with_permissions), db: Session = Depends(get_db)) -> TeamResponse:
-#     """Get a specific team by ID.
+@teams_router.get("/discover", response_model=List[TeamDiscoveryResponse])
+@require_permission("teams.read")
+async def discover_public_teams(
+    skip: int = Query(0, ge=0, description="Number of teams to skip"),
+    limit: int = Query(50, ge=1, le=100, description="Number of teams to return"),
+    current_user_ctx: dict = Depends(get_current_user_with_permissions)
+) -> List[TeamDiscoveryResponse]:
+    """Discover public teams that can be joined.
 
-#     Args:
-#         team_id: Team UUID
-#         current_user: Currently authenticated user
-#         db: Database session
+    Returns public teams that are discoverable to all authenticated users.
+    Only shows teams where the current user is not already a member.
 
-#     Returns:
-#         TeamResponse: Team data
+    Args:
+        skip: Number of teams to skip for pagination
+        limit: Maximum number of teams to return
+        current_user_ctx: Current user context with permissions and database session
 
-#     Raises:
-#         HTTPException: If team not found or access denied
-#     """
-#     try:
-#         service = TeamManagementService(db)
-#         team = await service.get_team_by_id(team_id)
+    Returns:
+        List[TeamDiscoveryResponse]: List of discoverable public teams
 
-#         if not team:
-#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
+    Raises:
+        HTTPException: If there's an error discovering teams
+    """
+    try:
+        db: Session = current_user_ctx["db"]
+        team_service = TeamManagementService(db)
 
-#         # Check if user has access to the team
-#         user_role = await service.get_user_role_in_team(current_user.email, team_id)
-#         if not user_role:
-#             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to team")
+        # Get public teams where user is not already a member
+        public_teams = await team_service.discover_public_teams(current_user_ctx["email"], skip=skip, limit=limit)
 
-#         team_obj = cast(Any, team) #changedteam_objtoteamlines206to217
-#         return TeamResponse(
-#             id=team_obj.id,
-#             name=team_obj.name,
-#             slug=team_obj.slug,
-#             description=team_obj.description,
-#             created_by=team_obj.created_by,
-#             is_personal=team_obj.is_personal,
-#             visibility=team_obj.visibility,
-#             max_members=team_obj.max_members,
-#             member_count = service.get_member_count(team_obj.id), #membercountchange214_member_count=team_obj.get_member_count(),
-#             created_at=team_obj.created_at,
-#             updated_at=team_obj.updated_at,
-#             is_active=team_obj.is_active,
-#         )
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.error(f"Error getting team {team_id}: {e}")
-#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get team")
+        if not public_teams:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Public teams found")
+        else:
+            discovery_responses = []
+            for team in public_teams:
+                discovery_responses.append(
+                    TeamDiscoveryResponse(
+                        id=team.id,
+                        name=team.name,
+                        description=team.description,
+                        member_count=team.get_member_count(),
+                        created_at=team.created_at,
+                        is_joinable=True,  # All returned teams are joinable
+                    )
+                )
 
-#new_team/{team_id}_get
-# @teams_router.get("/{team_id}", response_model=TeamResponse)
-# @require_permission("teams.read")
-# async def get_team(
-#     team_id: str,
-#     current_user_ctx: dict = Depends(get_current_user_with_permissions),
-# ) -> TeamResponse:
-#     """
-#     Get a specific team by ID.
-#     """
-#     try:
-#         db: Session = current_user_ctx["db"]
-#         current_user = current_user_ctx["is_admin"]  # or current_user_ctx["email"]/["claims"] depending on shape
-#         service = TeamManagementService(db)
-
-#         team = await service.get_team_by_id(team_id)
-
-#         if not team:
-#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
-
-#         # Check if user has access to the team
-#         # adapt how you read email from current_user depending on the context shape:
-#         user_email = current_user_ctx.get("email") or getattr(current_user, "email", None) or current_user.get("email") if isinstance(current_user, dict) else None
-#         if not user_email:
-#             # defensive fallback
-#             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User context missing email")
-
-#         user_role = await service.get_user_role_in_team(user_email, team_id)
-#         if not user_role:
-#             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to team")
-
-#         team_obj = cast(Any, team)
-#         member_count = service.get_member_count(team_obj.id)
-
-#         return TeamResponse(
-#             id=team_obj.id,
-#             name=team_obj.name,
-#             slug=team_obj.slug,
-#             description=team_obj.description,
-#             created_by=team_obj.created_by,
-#             is_personal=team_obj.is_personal,
-#             visibility=team_obj.visibility,
-#             max_members=team_obj.max_members,
-#             member_count=member_count,
-#             created_at=team_obj.created_at,
-#             updated_at=team_obj.updated_at,
-#             is_active=team_obj.is_active,
-#         )
-#     except HTTPException:
-#         raise
-#     except Exception:
-#         logger.exception("Error getting team %s", team_id)
-#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get team")
-
-#-------------------
-# Get Team by ID
-#-------------------
+            return discovery_responses
+    except Exception as e:
+        logger.error(f"Error discovering public teams: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to discover teams")
 
 @teams_router.get("/{team_id}", response_model=TeamResponse)
 @require_permission("teams.read")
@@ -320,31 +269,6 @@ async def get_team(
     except Exception:
         logger.exception("Error getting team %s", team_id)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get team")
-
-
-#debugfor500
-@teams_router.get("/__debug/team_row/{team_id}")
-async def debug_team_row(team_id: str, db: Session = Depends(get_db)):
-    svc = TeamManagementService(db)
-    team = await svc.get_team_by_id(team_id)
-    if not team:
-        return {"found": False, "team_id": team_id}
-    # safe count using DB
-    try:
-        member_count = db.query(EmailTeamMember).filter(EmailTeamMember.team_id == team.id, EmailTeamMember.is_active.is_(True)).count()
-    except Exception as e:
-        member_count = f"count-error: {e}"
-    return {
-        "found": True,
-        "id": team.id,
-        "is_active": team.is_active,
-        "stored_fields": {
-            "name": team.name,
-            "slug": team.slug,
-            "created_by": team.created_by,
-        },
-        "safe_member_count": member_count
-    }
 
 #-------------------
 # Team Update
@@ -816,54 +740,15 @@ async def accept_team_invitation(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to accept invitation",
         )
-
-'''
-@teams_router.post("/invitations/{token}/accept", response_model=TeamMemberResponse)
-@require_permission("teams.read")
-async def accept_team_invitation(
-    token: str, 
-    current_user_ctx: dict = Depends(get_current_user_with_permissions)
-    ) -> TeamMemberResponse:
-    """Accept a team invitation.
-
-    Args:
-        token: Invitation token
-        current_user: Currently authenticated user
-        db: Database session
-
-    Returns:
-        TeamMemberResponse: New team member data
-
-    Raises:
-        HTTPException: If invitation not found, expired, or acceptance fails
-    """
-    try:
-        db: Session = current_user_ctx["db"]
-        invitation_service = TeamInvitationService(db)
-
-        member = await invitation_service.accept_invitation(token, current_user_ctx["email"])
-        if hasattr(member, "id"):
-            return TeamMemberResponse(id=member.id, team_id=member.team_id, user_email=member.user_email, role=member.role, joined_at=member.joined_at, invited_by=member.invited_by, is_active=member.is_active)
-        else:    
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired invitation")
-
-    except HTTPException:
-        raise
-    except ValueError as e:
-        logger.error(f"Invitation acceptance failed: {e}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error accepting invitation {token}: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to accept invitation")
-'''
-        
+   
 #------------------------
 # Revoke team invitation
 #------------------------
 
-@teams_router.delete("/invitations/{invitation_id}", response_model=SuccessResponse)
+@teams_router.delete("/{team_id}/invitations/{invitation_id}", response_model=SuccessResponse)
 @require_permission("teams.manage_members")
 async def cancel_team_invitation(
+    team_id:str,
     invitation_id: str, 
     current_user_ctx: dict = Depends(get_current_user_with_permissions)
     ) -> SuccessResponse:
@@ -893,11 +778,16 @@ async def cancel_team_invitation(
         if not invitation:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found")
 
+        if invitation.team_id != team_id:
+            raise HTTPException(status_code=400, detail="Invitation does not belong to the specified team")
+
         # Check if user is team owner or the inviter
         role = await team_service.get_user_role_in_team(current_user_ctx["email"], invitation.team_id)
         #if current_user_ctx.get("is_admin"):
         #    success = await invitation_service.revoke_invitation(invitation_id, current_user_ctx["email"])
-        if role == "owner" and current_user_ctx["email"] == invitation.invited_by:
+        if current_user_ctx.get("is_admin"):
+            success = await invitation_service.revoke_invitation(invitation_id, current_user_ctx["email"])
+        elif role == "owner" and current_user_ctx["email"] == invitation.invited_by:
             success = await invitation_service.revoke_invitation(invitation_id, current_user_ctx["email"])
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
@@ -916,57 +806,102 @@ async def cancel_team_invitation(
 #------------------------
 # Discover Public Teams
 #------------------------
+# @teams_router.get("/discover", response_model=List[TeamDiscoveryResponse])
+# @require_permission("teams.read")
+# async def discover_public_teams(
+#     skip: int = Query(0, ge=0, description="Number of teams to skip"),
+#     limit: int = Query(50, ge=1, le=100, description="Number of teams to return"),
+#     current_user_ctx: dict = Depends(get_current_user_with_permissions),
+# ) -> List[TeamDiscoveryResponse]:
+#     """Discover public teams that can be joined.
 
-@teams_router.get("/discover", response_model=List[TeamDiscoveryResponse])
-@require_permission("teams.read")
-async def discover_public_teams(
-    skip: int = Query(0, ge=0, description="Number of teams to skip"),
-    limit: int = Query(50, ge=1, le=100, description="Number of teams to return"),
-    current_user_ctx: dict = Depends(get_current_user_with_permissions)
-) -> List[TeamDiscoveryResponse]:
-    """Discover public teams that can be joined.
+#     Returns public teams that are discoverable to all authenticated users.
+#     Only shows teams where the current user is not already a member.
+#     """
+#     try:
+#         db: Session = current_user_ctx["db"]
+#         team_service = TeamManagementService(db)
 
-    Returns public teams that are discoverable to all authenticated users.
-    Only shows teams where the current user is not already a member.
+#         # Get public teams where user is not already a member
+#         public_teams = await team_service.discover_public_teams(
+#             current_user_ctx["email"], skip=skip, limit=limit
+#         )
 
-    Args:
-        skip: Number of teams to skip for pagination
-        limit: Maximum number of teams to return
-        current_user_ctx: Current user context with permissions and database session
+#         # --- Diagnostic + safe-guard (paste right after fetching public_teams) ---
+#         try:
+#             # ensure public_teams is iterable
+#             if public_teams is None:
+#                 logger.error("DEBUG: discover_public_teams returned None")
+#                 raise HTTPException(status_code=500, detail="Failed to discover teams")
 
-    Returns:
-        List[TeamDiscoveryResponse]: List of discoverable public teams
+#             logger.error(
+#                 "DEBUG: discover_public_teams returned %d items", len(public_teams)
+#             )
+#             for idx, item in enumerate(public_teams):
+#                 # log minimal info guaranteed to be safe
+#                 try:
+#                     ttype = type(item).__name__
+#                     tid = getattr(item, "id", None)
+#                     logger.error(
+#                         "DEBUG: public_teams[%d] type=%s id=%s repr=%r",
+#                         idx,
+#                         ttype,
+#                         tid,
+#                         item,
+#                     )
+#                 except Exception as e:
+#                     logger.exception(
+#                         "DEBUG: error while logging public_teams[%d]: %s", idx, e
+#                     )
 
-    Raises:
-        HTTPException: If there's an error discovering teams
-    """
-    try:
-        db: Session = current_user_ctx["db"]
-        team_service = TeamManagementService(db)
+#             # filter out invalid items so we don't crash while building responses
+#             public_teams = [t for t in public_teams if t is not None and hasattr(t, "id")]
+#             logger.error(
+#                 "DEBUG: filtered public_teams count = %d", len(public_teams)
+#             )
 
-        # Get public teams where user is not already a member
-        public_teams = await team_service.discover_public_teams(current_user_ctx["email"], skip=skip, limit=limit)
+#         except Exception as exc:
+#             # If anything unexpected happens during diagnostics, log it and surface a 500
+#             logger.exception(
+#                 "DEBUG: unexpected error in discover diagnostics: %s", exc
+#             )
+#             raise HTTPException(
+#                 status_code=500, detail="Failed to discover teams (diagnostic)"
+#             )
+#         # --- end diagnostic block ---
 
-        if not public_teams:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Public teams found")
-        else:
-            discovery_responses = []
-            for team in public_teams:
-                discovery_responses.append(
-                    TeamDiscoveryResponse(
-                        id=team.id,
-                        name=team.name,
-                        description=team.description,
-                        member_count=team.get_member_count(),
-                        created_at=team.created_at,
-                        is_joinable=True,  # All returned teams are joinable
-                    )
-                )
+#         # Now continue with your original logic (build responses from the filtered public_teams)
+#         if not public_teams:
+#             raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND, detail="No Public teams found"
+#             )
 
-            return discovery_responses
-    except Exception as e:
-        logger.error(f"Error discovering public teams: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to discover teams")
+#         discovery_responses: List[TeamDiscoveryResponse] = []
+#         for team in public_teams:
+#             discovery_responses.append(
+#                 TeamDiscoveryResponse(
+#                     id=team.id,
+#                     name=team.name,
+#                     description=team.description,
+#                     member_count=team.get_member_count()
+#                     if hasattr(team, "get_member_count")
+#                     else 0,
+#                     created_at=team.created_at,
+#                     is_joinable=True,  # All returned teams are joinable
+#                 )
+#             )
+
+#         return discovery_responses
+
+#     except HTTPException:
+#         # re-raise HTTPExceptions unchanged
+#         raise
+#     except Exception as e:
+#         logger.exception("Error discovering public teams: %s", e)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Failed to discover teams",
+#         )
 
 #-------------------------
 # Request to join a  team 

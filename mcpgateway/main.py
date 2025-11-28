@@ -1303,41 +1303,83 @@ async def handle_sampling(request: Request, db: Session = Depends(get_db), user=
 async def list_servers(
     include_inactive: bool = False,
     tags: Optional[str] = None,
-    team_id: Optional[str] = None,
-    visibility: Optional[str] = None,
+    team_id: Optional[str] = Query(None, description="Filter by team ID"),
+    visibility: Optional[str] = Query(None, description="Filter by visibility: private, team, public"),
     db: Session = Depends(get_db),
     user=Depends(get_current_user_with_permissions),
 ) -> List[ServerRead]:
     """
-    Lists servers accessible to the user, with team filtering support.
+    Lists servers accessible to the current user, enforcing visibility rules.
 
-    Args:
-        include_inactive (bool): Whether to include inactive servers in the response.
-        tags (Optional[str]): Comma-separated list of tags to filter by.
-        team_id (Optional[str]): Filter by specific team ID.
-        visibility (Optional[str]): Filter by visibility (private, team, public).
-        db (Session): The database session used to interact with the data store.
-        user (str): The authenticated user making the request.
+    User will see:
+      - Their own servers (any visibility)
+      - Team servers for teams they belong to (visibility: team/public)
+      - Global public servers
 
-    Returns:
-        List[ServerRead]: A list of server objects the user has access to.
+    Optional filters:
+      - tags: comma-separated list of tags
+      - team_id: restrict to a specific team (must be one of the user's teams)
+      - visibility: restrict to private/team/public
     """
+
     # Parse tags parameter if provided
-    tags_list = None
+    tags_list: Optional[List[str]] = None
     if tags:
         tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
-    # Get user email for team filtering
+
+    # Get user email for visibility / team filtering
     user_email = get_user_email(user)
-    # Use team-filtered server listing
-    if team_id or visibility:
-        data = await server_service.list_servers_for_user(db=db, user_email=user_email, team_id=team_id, visibility=visibility, include_inactive=include_inactive)
-        # Apply tag filtering to team-filtered results if needed
-        if tags_list:
-            data = [server for server in data if any(tag in server.tags for tag in tags_list)]
-    else:
-        # Use existing method for backward compatibility when no team filtering
-        data = await server_service.list_servers(db, include_inactive=include_inactive, tags=tags_list)
+
+    # 🔐 Always use the per-user, visibility-aware listing
+    data = await server_service.list_servers_for_user(
+        db=db,
+        user_email=user_email,
+        team_id=team_id,
+        visibility=visibility,
+        include_inactive=include_inactive,
+        # skip/limit handled by defaults inside list_servers_for_user
+    )
+
+    # Apply tag filtering to the per-user results if needed
+    if tags_list:
+        filtered: List[ServerRead] = []
+        for server in data:
+            server_tags = getattr(server, "tags", None)
+            if server_tags and any(tag in server_tags for tag in tags_list):
+                filtered.append(server)
+        data = filtered
+
     return data
+
+@server_router.get("/admin/servers", response_model=List[ServerRead])
+@require_permission("admin.read") 
+async def admin_list_all_servers(
+    include_inactive: bool = False,
+    tags: Optional[str] = Query(
+        None, description="Comma-separated tags (e.g., 'nlp,data,ocr')"
+    ),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user_with_permissions),
+) -> List[ServerRead]:
+    """
+    ADMIN-ONLY: List ALL servers (public + private + team).
+
+    This bypasses user/team/private visibility rules.
+    """
+
+    # Parse tags
+    tags_list: Optional[List[str]] = None
+    if tags:
+        tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+    # Direct global listing (no user-based filtering)
+    servers = await server_service.list_servers(
+        db=db,
+        include_inactive=include_inactive,
+        tags=tags_list,
+    )
+
+    return servers
 
 
 @server_router.get("/{server_id}", response_model=ServerRead)
@@ -2030,7 +2072,7 @@ async def invoke_a2a_agent(
 @tool_router.get("/", response_model=Union[List[ToolRead], List[Dict], Dict, List])
 @require_permission("tools.read")
 async def list_tools(
-    cursor: Optional[str] = None,
+    cursor: Optional[str] = None,  # kept for backward compatibility, currently unused
     include_inactive: bool = False,
     tags: Optional[str] = None,
     team_id: Optional[str] = Query(None, description="Filter by team ID"),
@@ -2039,48 +2081,90 @@ async def list_tools(
     apijsonpath: JsonPathModifier = Body(None),
     user=Depends(get_current_user_with_permissions),
 ) -> Union[List[ToolRead], List[Dict], Dict]:
-    """List all registered tools with team-based filtering and pagination support.
+    """List tools visible to the current user, with team/visibility filtering.
 
-    Args:
-        cursor: Pagination cursor for fetching the next set of results
-        include_inactive: Whether to include inactive tools in the results
-        tags: Comma-separated list of tags to filter by (e.g., "api,data")
-        team_id: Optional team ID to filter tools by specific team
-        visibility: Optional visibility filter (private, team, public)
-        db: Database session
-        apijsonpath: JSON path modifier to filter or transform the response
-        user: Authenticated user with permissions
-
-    Returns:
-        List of tools or modified result based on jsonpath
+    Visibility rules are enforced server-side:
+    - User sees:
+      - Their own tools (any visibility)
+      - Team tools for teams they belong to (visibility: team/public)
+      - Global public tools
+    Optional filters:
+      - team_id: restrict to a specific team (if user is a member)
+      - visibility: restrict to specific visibility: private, team, public
+      - tags: comma-separated tags
     """
 
     # Parse tags parameter if provided
-    tags_list = None
+    tags_list: Optional[List[str]] = None
     if tags:
         tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
 
-    # Get user email for team filtering
+    # Get user email for visibility rules
     user_email = get_user_email(user)
 
-    # Use team-filtered tool listing
-    if team_id or visibility:
-        data = await tool_service.list_tools_for_user(db=db, user_email=user_email, team_id=team_id, visibility=visibility, include_inactive=include_inactive)
+    # 🔐 Always use user-aware listing to enforce visibility & ownership
+    data = await tool_service.list_tools_for_user(
+        db=db,
+        user_email=user_email,
+        team_id=team_id,
+        visibility=visibility,
+        include_inactive=include_inactive,
+        # skip/limit use defaults inside list_tools_for_user for now
+    )
 
-        # Apply tag filtering to team-filtered results if needed
-        if tags_list:
-            data = [tool for tool in data if any(tag in tool.tags for tag in tags_list)]
-    else:
-        # Use existing method for backward compatibility when no team filtering
-        data = await tool_service.list_tools(db, cursor=cursor, include_inactive=include_inactive, tags=tags_list)
+    # Optional tag filtering on the result if tags_list is provided
+    if tags_list:
+        filtered = []
+        for tool in data:
+            tool_tags = getattr(tool, "tags", None)
+            if tool_tags and any(tag in tool_tags for tag in tags_list):
+                filtered.append(tool)
+        data = filtered
 
+    # If no JSONPath transformation requested, return as-is
     if apijsonpath is None:
         return data
 
-    tools_dict_list = [tool.to_dict(use_alias=True) for tool in data]
+    # Convert to dicts for jsonpath_modifier
+    # ToolRead is a Pydantic model or similar:
+    tools_dict_list = [
+        tool.to_dict(use_alias=True) if hasattr(tool, "to_dict") else tool.dict(by_alias=True)
+        for tool in data
+    ]
 
     return jsonpath_modifier(tools_dict_list, apijsonpath.jsonpath, apijsonpath.mapping)
 
+
+# ADMIN ROUTE — FULL TOOL LIST (NO VISIBILITY FILTERING)
+@tool_router.get("/admin/tools", response_model=List[ToolRead])
+@require_permission("admin.read")  
+async def admin_list_all_tools(
+    include_inactive: bool = False,
+    tags: Optional[str] = Query(
+        None, description="Comma-separated tags (e.g., 'api,data')"
+    ),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user_with_permissions),
+) -> List[ToolRead]:
+    """
+    ADMIN-ONLY: List ALL tools in the system.
+
+    This bypasses per-user visibility rules and returns the full tool registry.
+    Only users with 'admin.read' permission can access it.
+    """
+
+    tags_list: Optional[List[str]] = None
+    if tags:
+        tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+
+    tools = await tool_service.list_tools(
+        db=db,
+        include_inactive=include_inactive,
+        cursor=None,
+        tags=tags_list,
+    )
+
+    return tools
 
 @tool_router.post("", response_model=ToolRead)
 @tool_router.post("/", response_model=ToolRead)
@@ -3093,22 +3177,68 @@ async def toggle_gateway_status(
 @require_permission("gateways.read")
 async def list_gateways(
     include_inactive: bool = False,
+    team_id: Optional[str] = Query(None, description="Filter by team ID"),
+    visibility: Optional[str] = Query(None, description="Filter by visibility: private, team, public"),
     db: Session = Depends(get_db),
     user=Depends(get_current_user_with_permissions),
 ) -> List[GatewayRead]:
     """
-    List all gateways.
+    List gateways visible to the current user with team/visibility filtering.
 
-    Args:
-        include_inactive: Include inactive gateways.
-        db: Database session.
-        user: Authenticated user.
-
-    Returns:
-        List of gateway records.
+    Visibility rules (enforced in list_gateways_for_user):
+    - User sees:
+      - Gateways they own (any visibility)
+      - Team gateways for teams they belong to (visibility: team/public)
+      - Global public gateways
+    Optional filters:
+      - team_id: restrict to a specific team (if user is a member)
+      - visibility: restrict to specific visibility: private, team, public
     """
-    logger.debug(f"User '{user}' requested list of gateways with include_inactive={include_inactive}")
-    return await gateway_service.list_gateways(db, include_inactive=include_inactive)
+
+    # Extract user email from auth info
+    user_email = get_user_email(user)
+
+    # 🔐 Always use the user-aware listing function
+    gateways = await gateway_service.list_gateways_for_user(
+        db=db,
+        user_email=user_email,
+        team_id=team_id,
+        visibility=visibility,
+        include_inactive=include_inactive,
+        # skip/limit handled by defaults in service
+    )
+
+    return gateways
+
+@gateway_router.get("/admin/gateways", response_model=List[GatewayRead])
+@require_permission("admin.read")   
+async def admin_list_all_gateways(
+    include_inactive: bool = False,
+    tags: Optional[str] = Query(
+        None, description="Comma-separated tags (e.g., 'billing,api')"
+    ),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user_with_permissions),
+) -> List[GatewayRead]:
+    """
+    ADMIN-ONLY: List ALL gateways (public + private + team).
+
+    This bypasses the per-user visibility system.
+    """
+
+    # Parse tags
+    tags_list: Optional[List[str]] = None
+    if tags:
+        tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+    # Direct global listing (no filtering)
+    gateways = await gateway_service.list_gateways(
+        db=db,
+        include_inactive=include_inactive,
+        tags=tags_list,
+    )
+
+    return gateways
 
 
 @gateway_router.post("", response_model=GatewayRead)

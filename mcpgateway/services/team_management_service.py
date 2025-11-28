@@ -364,11 +364,19 @@ class TeamManagementService:
                 raise ValueError("Personal teams cannot be deleted")
 
             # Soft delete the team
-            team.is_active = False
-            team.updated_at = utc_now()
+            #team.is_active = False
+            #team.updated_at = utc_now()
 
             # Deactivate all memberships
-            self.db.query(EmailTeamMember).filter(EmailTeamMember.team_id == team_id).update({"is_active": False})
+            #self.db.query(EmailTeamMember).filter(EmailTeamMember.team_id == team_id).update({"is_active": False})
+
+            # Hard delete memberships
+            self.db.query(EmailTeamMember).filter(
+            EmailTeamMember.team_id == team_id
+            ).delete()
+
+            # Hard delete the team
+            self.db.delete(team)
 
             self.db.commit()
 
@@ -498,8 +506,10 @@ class TeamManagementService:
                     logger.warning(f"Cannot remove the last owner from team {team_id}")
                     raise ValueError("Cannot remove the last owner from a team")
 
-            # Remove membership (soft delete)
-            membership.is_active = False
+            # Remove membership (perma delete)
+            self.db.delete(membership)
+
+            #membership.is_active = false
             self.db.commit()
 
             logger.info(f"Removed {user_email} from team {team_id} by {removed_by}")
