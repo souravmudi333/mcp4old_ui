@@ -135,28 +135,126 @@ async def bootstrap_default_roles() -> None:
 
             # Default system roles to create
             default_roles = [
-                {"name": "platform_admin", "description": "Platform administrator with all permissions", "scope": "global", "permissions": ["*"], "is_system_role": True},  # All permissions
                 {
-                    "name": "team_admin",
-                    "description": "Team administrator with team management permissions",
-                    "scope": "team",
-                    "permissions": ["teams.read", "teams.update", "teams.join", "teams.manage_members", "tools.read", "tools.execute", "resources.read", "prompts.read"],
-                    "is_system_role": True,
+                    "name": "platform_admin",
+                    "description": "Platform administrator with all permissions",
+                    "scope": "global",
+                    "permissions": ["*"],  # All permissions
+                    "is_system_role": True
                 },
                 {
-                    "name": "developer",
-                    "description": "Developer with tool and resource access",
-                    "scope": "team",
-                    "permissions": ["teams.join", "tools.read", "tools.execute", "resources.read", "prompts.read"],
-                    "is_system_role": True,
+                    "name": "Viewer",
+                    "description": "Read-only and Execute-only access.",
+                    "scope": "global",
+                    "permissions": [
+                        "gateways.read",
+                        "prompts.read",
+                        "resources.read",
+                        "servers.read",
+                        "teams.join",
+                        "teams.read",
+                        "tools.read"
+                    ],
+                    "is_system_role": False
                 },
                 {
-                    "name": "viewer",
-                    "description": "Read-only access to resources",
-                    "scope": "team",
-                    "permissions": ["teams.join", "tools.read", "resources.read", "prompts.read"],
-                    "is_system_role": True,
+                    "name": "Developer",
+                    "description": "Create, delete, manage, update, read, and execute for gateways, prompts, resources, servers, and tools.",
+                    "scope": "global",
+                    "permissions": [
+                        "gateways.create",
+                        "gateways.delete",
+                        "gateways.manage",
+                        "gateways.read",
+                        "gateways.update",
+                        "prompts.create",
+                        "prompts.delete",
+                        "prompts.execute",
+                        "prompts.read",
+                        "prompts.update",
+                        "resources.create",
+                        "resources.delete",
+                        "resources.read",
+                        "resources.share",
+                        "resources.update",
+                        "servers.create",
+                        "servers.delete",
+                        "servers.manage",
+                        "servers.read",
+                        "servers.update",
+                        "tools.create",
+                        "tools.delete",
+                        "tools.execute",
+                        "tools.read",
+                        "tools.update"
+                    ],
+                    "is_system_role": False
                 },
+                {
+                    "name": "TeamManager",
+                    "description": "Team and token management with ability to invite and read users.",
+                    "scope": "global",
+                    "permissions": [
+                        "teams.create",
+                        "teams.delete",
+                        "teams.join",
+                        "teams.manage_members",
+                        "teams.read",
+                        "teams.update",
+                        "tokens.create",
+                        "tokens.read",
+                        "tokens.revoke",
+                        "tokens.scope",
+                        "users.invite",
+                        "users.read"
+                    ],
+                    "is_system_role": False
+                },
+                {
+                    "name": "Contributor",
+                    "description": "Contibutor with broad resource, gateway, server, prompt, tool, and team management plus tokens and user invites.",
+                    "scope": "global",
+                    "permissions": [
+                        "gateways.create",
+                        "gateways.delete",
+                        "gateways.manage",
+                        "gateways.read",
+                        "gateways.update",
+                        "prompts.create",
+                        "prompts.delete",
+                        "prompts.execute",
+                        "prompts.read",
+                        "prompts.update",
+                        "resources.create",
+                        "resources.delete",
+                        "resources.read",
+                        "resources.share",
+                        "resources.update",
+                        "servers.create",
+                        "servers.delete",
+                        "servers.manage",
+                        "servers.read",
+                        "servers.update",
+                        "teams.create",
+                        "teams.delete",
+                        "teams.join",
+                        "teams.manage_members",
+                        "teams.read",
+                        "teams.update",
+                        "tokens.create",
+                        "tokens.read",
+                        "tokens.revoke",
+                        "tokens.scope",
+                        "tools.create",
+                        "tools.delete",
+                        "tools.execute",
+                        "tools.read",
+                        "tools.update",
+                        "users.invite",
+                        "users.read"
+                    ],
+                    "is_system_role": False
+                }
             ]
 
             # Create default roles
