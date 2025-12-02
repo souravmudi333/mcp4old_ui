@@ -547,7 +547,7 @@ class PermissionService:
         """
         if not team_id:
             # For global team operations, allow authenticated users to read their teams and create new teams
-            if permission in ["teams.read"]:
+            if permission in ["teams.create", "teams.read"]:
                 return True
             return False
 
