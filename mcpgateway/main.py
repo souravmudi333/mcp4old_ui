@@ -98,6 +98,7 @@ from mcpgateway.schemas import (
     ToolRead,
     ToolUpdate,
 )
+from mcpgateway.routers.gateway_testing import gateway_testing_router
 from mcpgateway.services.a2a_service import A2AAgentError, A2AAgentNameConflictError, A2AAgentNotFoundError, A2AAgentService
 from mcpgateway.services.completion_service import CompletionService
 from mcpgateway.services.export_service import ExportError, ExportService
@@ -4401,6 +4402,7 @@ app.include_router(
     prefix="/tool-testing",
     tags=["Tool Testing"],
 )
+app.include_router(gateway_testing_router)
 
 if settings.mcpgateway_a2a_enabled:
     app.include_router(a2a_router)
