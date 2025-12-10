@@ -88,3 +88,4 @@ wcwidth==0.2.14
 yarl==1.22.0
 zeroconf==0.148.0
 zstandard==0.25.0
+psycopg2==2.9.11

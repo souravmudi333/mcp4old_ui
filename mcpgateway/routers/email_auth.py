@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, UTC
 from typing import Optional, Dict, Any    
 
 # Third-Party
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from mcpgateway.middleware.rbac import get_current_user_with_permissions
@@ -530,50 +530,66 @@ async def get_user(user_email: str, user = Depends(get_current_user_with_permiss
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve user")
 
 
+
 @email_auth_router.put("/admin/users/{user_email}", response_model=EmailUserResponse)
 @require_permission("admin.user_management")
-async def update_user(
+async def update_user_admin(
     user_email: str,
     user_request: EmailRegistrationRequest,
-    admin_ctx: Dict[str, Any] = Depends(get_current_user_with_permissions),
+    skip_password_check: bool = Query(
+        False,
+        description="If true, skip password policy check (admin override)",
+    ),
+    user=Depends(get_current_user_with_permissions),  # 🔹 this is a dict
     db: Session = Depends(get_db),
-):
+) -> EmailUserResponse:
+    """Update user information (admin only)."""
     auth_service = EmailAuthService(db)
 
     try:
-        target_user = await auth_service.get_user_by_email(user_email)
-        if not target_user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        # Detect if password is actually being changed
+        new_password: Optional[str] = None
+        if user_request.password:
+            masked_values = {"********", "*********", "**********"}
+            if user_request.password not in masked_values:
+                new_password = user_request.password
 
-        # Apply updates (guard for None so we don't overwrite accidentally)
-        if getattr(user_request, "full_name", None) is not None:
-            target_user.full_name = user_request.full_name
+        updated_user = await auth_service.update_user(
+            email=user_email,
+            full_name=user_request.full_name,
+            is_admin=getattr(user_request, "is_admin", None),
+            password=new_password,
+            skip_password_check=skip_password_check,
+        )
 
-        if hasattr(user_request, "is_admin"):
-            target_user.is_admin = bool(user_request.is_admin)
+        # 🔹 user is a dict here, not a model
+        admin_email = None
+        if isinstance(user, dict):
+            admin_email = user.get("email")
+        else:
+            admin_email = getattr(user, "email", None)
 
-        if getattr(user_request, "password", None):
-            await auth_service.change_password(
-                email=user_email,
-                old_password=None,
-                new_password=user_request.password,
-                ip_address="admin_update",
-                user_agent="admin_panel",
-                skip_old_password_check=True 
-            )
+        logger.info("Admin %s updated user: %s", admin_email, updated_user.email)
 
-        db.commit()
-        db.refresh(target_user)
+        return EmailUserResponse.from_email_user(updated_user)
 
-        logger.info("Admin %s updated user: %s",target_user.email)
-        return EmailUserResponse.from_email_user(target_user)
-
-    except HTTPException:
-        raise
+    except PasswordValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e) or "Password does not meet security requirements",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
     except Exception as e:
         logger.error("Error updating user %s: %s", user_email, e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update user")
-
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update user",
+        )
+        
 @email_auth_router.delete("/admin/users/{user_email}", response_model=SuccessResponse)
 @require_permission("admin.user_management")
 async def delete_user(

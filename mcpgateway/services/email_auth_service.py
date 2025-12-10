@@ -628,7 +628,14 @@ class EmailAuthService:
             logger.error(f"Error getting auth events: {e}")
             return []
 
-    async def update_user(self, email: str, full_name: Optional[str] = None, is_admin: Optional[bool] = None, password: Optional[str] = None) -> EmailUser:
+    async def update_user(
+        self,
+        email: str,
+        full_name: Optional[str] = None,
+        is_admin: Optional[bool] = None,
+        password: Optional[str] = None,
+        skip_password_check: bool = False,
+    ) -> EmailUser:
         """Update user information.
 
         Args:
@@ -636,6 +643,8 @@ class EmailAuthService:
             full_name: New full name (optional)
             is_admin: New admin status (optional)
             password: New password (optional, will be hashed)
+            skip_password_check: If True, do NOT enforce password policy
+                                 (for admin-only overrides)
 
         Returns:
             EmailUser: Updated user object
@@ -660,14 +669,20 @@ class EmailAuthService:
             if is_admin is not None:
                 user.is_admin = is_admin
 
+            # Only touch password if caller actually gave us one
             if password is not None:
-                if not self.validate_password(password):
-                    raise ValueError("Password does not meet security requirements")
+                # Admin override: optionally skip password policy check
+                if not skip_password_check:
+                    # This will raise PasswordValidationError if invalid
+                    self.validate_password(password)
+
                 user.password_hash = self.password_service.hash_password(password)
+                # If admin just set a password, no need to force next-login change
+                user.password_change_required = False
 
             user.updated_at = datetime.now(timezone.utc)
-
             self.db.commit()
+            self.db.refresh(user)
             return user
 
         except Exception as e:
