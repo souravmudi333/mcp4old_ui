@@ -67,3 +67,16 @@
 /* .hidden {
   display: none;
 } */
+/* Header layout tweaks for centered title + left logo */
+/* Header logo sizing (exact sizes you requested) */
+.team-menu-btn {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px; /* adjust to desired width */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+
