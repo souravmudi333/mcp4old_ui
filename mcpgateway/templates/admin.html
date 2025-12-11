@@ -16,7 +16,7 @@
       rel="icon"
       type="image/png"
       sizes="50x280"
-      href="{{ root_path }}/static/cogentiq1.png"
+      href="{{ root_path }}/static/cogentiq.png"
     />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -295,7 +295,7 @@
   </head>
 
   <body class="bg-gray-100 dark:bg-gray-900">
-    <header class="mb-4 figma-dark-blue-bg py-0 px-0">
+    <header class="mb-4 figma-dark-blue-bg bg-gradient-to-r from-[#102347] via-[#1C3870] to-[#102347] py-2 px-4 shadow-sm border-b border-white/10">
       <div class="flex justify-between items-center">
         <!-- grid: left=logo, center=title/subtitle, right=controls -->
         <div class="grid grid-cols-[auto_1fr_auto] items-center gap-2 w-full">
@@ -312,7 +312,12 @@
 
           <!-- CENTER: title and subtitle -->
           <div class="text-center">
-            <div class="main-header text-white dark:text-gray-200">
+            <div class="text-white dark:text-gray-100 
+                  font-normal
+                  tracking-[0.02em]
+                  text-[20px] md:text-[26px]
+                  "
+                 style="font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;">
               MCP Gateway
             </div>
             <p class="sub-header text-gray-200 dark:text-gray-400 mx-auto mt-1 header-subtitle">
@@ -1723,19 +1728,19 @@
                 <div class="flex gap-x-6 mt-2"> <!-- Add gap-x-6 for more space between radio options -->
                   <div class="flex items-center">
                     <input type="radio" name="visibility" value="public" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="server-visibility-public" checked />
-                    <label for="server-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🌍Public</label>
+                    <label for="server-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Public</label>
                   </div>
                   <div class="flex items-center">
                     <input type="radio" name="visibility" value="team" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="server-visibility-team" />
-                    <label for="server-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">👥Team</label>
+                    <label for="server-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Team</label>
                   </div>
                   <div class="flex items-center">
                     <input type="radio" name="visibility" value="private" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="server-visibility-private" />
-                    <label for="server-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🔒Private</label>
+                    <label for="server-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Private</label>
                   </div>
                 </div>
               </div>
-              <div>
+              <!-- <div>
                 <label
                   class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
                   for="associatedResources"
@@ -1800,8 +1805,8 @@
                     Clear All
                   </button>
                 </div>
-              </div>
-              <div>
+              </div> -->
+              <!-- <div>
                 <label
                   class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
                   for="associatedPrompts"
@@ -1867,7 +1872,7 @@
                   </button>
                 </div>
                   
-              </div>
+              </div> -->
               <div
                 class="bg-white"
               >
@@ -2442,9 +2447,9 @@
               <div class="col-span-2">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Visibility</label>
                 <div class="flex gap-x-6 mt-2">
-                  <div class="flex items-center"><input type="radio" name="visibility" value="public" id="tool-visibility-public" class="form-radio h-5 w-5 figma-blue-txt" checked /><label for="tool-visibility-public" class="ml-2 text-sm">🌍Public</label></div>
-                  <div class="flex items-center"><input type="radio" name="visibility" value="team" id="tool-visibility-team" class="form-radio h-5 w-5 figma-blue-txt" /><label for="tool-visibility-team" class="ml-2 text-sm">👥Team</label></div>
-                  <div class="flex items-center"><input type="radio" name="visibility" value="private" id="tool-visibility-private" class="form-radio h-5 w-5 figma-blue-txt" /><label for="tool-visibility-private" class="ml-2 text-sm">🔒Private</label></div>
+                  <div class="flex items-center"><input type="radio" name="visibility" value="public" id="tool-visibility-public" class="form-radio h-5 w-5 figma-blue-txt" checked /><label for="tool-visibility-public" class="ml-2 text-sm">Public</label></div>
+                  <div class="flex items-center"><input type="radio" name="visibility" value="team" id="tool-visibility-team" class="form-radio h-5 w-5 figma-blue-txt" /><label for="tool-visibility-team" class="ml-2 text-sm">Team</label></div>
+                  <div class="flex items-center"><input type="radio" name="visibility" value="private" id="tool-visibility-private" class="form-radio h-5 w-5 figma-blue-txt" /><label for="tool-visibility-private" class="ml-2 text-sm">Private</label></div>
                 </div>
               </div>
 
@@ -3725,6 +3730,7 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
           </h3>
           <form method="POST" id="add-gateway-form">
             <div class="grid grid-cols-2 gap-6">
+              <!-- MCP Server Name -->
               <div>
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-400"
@@ -3737,6 +3743,8 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   class="mt-1 block textfield rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
                 />
               </div>
+
+              <!-- MCP Server URL -->
               <div>
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-400"
@@ -3749,6 +3757,8 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   class="mt-1 block textfield rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
                 />
               </div>
+
+              <!-- Description -->
               <div>
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-400"
@@ -3759,7 +3769,24 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   class="mt-1 block textfield rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
                 ></input>
               </div>
+
+              <!-- Transport Type (next to Description) -->
               <div>
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-400"
+                  >Transport Type</label
+                >
+                <select
+                  name="transport"
+                  class="mt-1 selectfield border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
+                >
+                  <option value="SSE" selected>SSE</option>
+                  <option value="STREAMABLEHTTP">Streamable HTTP</option>
+                </select>
+              </div>
+
+              <!-- Authentication Type -->
+              <div class="col-span-2">
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-400"
                   >Authentication Type</label
@@ -3777,76 +3804,10 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                 </select>
               </div>
 
-              <div>
-                <label
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-400"
-                  >Transport Type</label
-                >
-                <select
-                  name="transport"
-                  class="mt-1 selectfield border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
-                >
-                  <option value="SSE" selected>SSE</option>
-                  <option value="STREAMABLEHTTP">Streamable HTTP</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
-                  Visibility
-                </label>
-                <div class="mt-1 flex space-x-6">
-                  <div class="flex items-center">
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value="public"
-                      class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600"
-                      checked
-                    />
-                    <label for="edit-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🌍Public</label>
-                  </div>
-                  <div class="flex items-center">
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value="team"
-                      class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600"
-                    />
-                    <label for="edit-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">👥Team</label>
-                  </div>
-                  <div class="flex items-center">
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value="private"
-                      class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600"
-                    />
-                    <label for="edit-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🔒Private</label>
-                  </div>
-                </div>
-              </div>
-
-              
-              <div>
-                <label
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-400"
-                  >Tags</label
-                >
-                <input
-                  type="text"
-                  name="tags"
-                  placeholder="e.g., production,external,api-gateway (comma-separated)"
-                  class="mt-1 block textfield rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
-                />
-                <p class="mt-1 text-sm text-gray-500">
-                  Separate multiple tags with commas. Tags will be automatically
-                  normalized (lowercase, spaces→hyphens).
-                </p>
-              </div>
-              
-              <div id="auth-basic-fields-gw" style="display: none">
+              <!-- Basic Auth Fields -->
+              <div id="auth-basic-fields-gw" class="col-span-2" style="display: none">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700"
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-400"
                     >Username</label
                   >
                   <input
@@ -3856,7 +3817,7 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700"
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-400"
                     >Password</label
                   >
                   <input
@@ -3866,9 +3827,11 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   />
                 </div>
               </div>
-              <div id="auth-bearer-fields-gw" style="display: none">
+
+              <!-- Bearer Token Fields -->
+              <div id="auth-bearer-fields-gw" class="col-span-2" style="display: none">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700"
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-400"
                     >Token</label
                   >
                   <input
@@ -3878,7 +3841,9 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   />
                 </div>
               </div>
-              <div id="auth-headers-fields-gw" style="display: none">
+
+              <!-- Custom Headers Fields -->
+              <div id="auth-headers-fields-gw" class="col-span-2" style="display: none">
                 <div class="space-y-3">
                   <div class="flex items-center justify-between">
                     <label
@@ -3919,7 +3884,7 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
               </div>
 
               <!-- OAuth Configuration Fields -->
-              <div id="auth-oauth-fields-gw" style="display: none">
+              <div id="auth-oauth-fields-gw" class="col-span-2" style="display: none">
                 <div class="space-y-4">
                   <div>
                     <label
@@ -4134,6 +4099,26 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   </div>
                 </div>
               </div>
+
+              <!-- Tags (left) -->
+              <div>
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-400"
+                  >Tags</label
+                >
+                <input
+                  type="text"
+                  name="tags"
+                  placeholder="e.g., production,external,api-gateway (comma-separated)"
+                  class="mt-1 block textfield rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
+                />
+                <p class="mt-1 text-sm text-gray-500">
+                  Separate multiple tags with commas. Tags will be automatically
+                  normalized (lowercase, spaces→hyphens).
+                </p>
+              </div>
+
+              <!-- Passthrough Headers (right) -->
               <div>
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-gray-400"
@@ -4145,17 +4130,57 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                   placeholder="Authorization, X-Tenant-Id, X-Trace-Id"
                   class="mt-1 block textfield rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300"
                 />
-                 <small class="text-xs text-gray-500 dark:text-gray-400 block mb-2">
+                <small class="text-xs text-gray-500 dark:text-gray-400 block mb-2">
                   List of headers to pass through from client requests
                   (comma-separated, e.g., "Authorization, X-Tenant-Id,
                   X-Trace-Id"). Leave empty to use global defaults.
                 </small>
               </div>
-              <div id="add-gateway-loading" style="display: none">
+
+              <!-- Visibility (last) -->
+              <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
+                  Visibility
+                </label>
+                <div class="mt-1 flex space-x-6">
+                  <div class="flex items-center">
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value="public"
+                      class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600"
+                      checked
+                    />
+                    <label for="edit-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Public</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value="team"
+                      class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600"
+                    />
+                    <label for="edit-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Team</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value="private"
+                      class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600"
+                    />
+                    <label for="edit-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Private</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Loading + Status -->
+              <div id="add-gateway-loading" class="col-span-2" style="display: none">
                 <div class="spinner"></div>
               </div>
-              <div id="status-gateways"></div>
+              <div id="status-gateways" class="col-span-2"></div>
             </div>
+
             <div class="mt-1">
               <button
                 type="submit"
@@ -5506,15 +5531,15 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                       <div class="flex gap-x-6 mt-2"> <!-- Add gap-x-6 for more space between radio options -->
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="public" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-tool-visibility-public" />
-                          <label for="edit-tool-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🌍Public</label>
+                          <label for="edit-tool-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Public</label>
                         </div>
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="team" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-tool-visibility-team" />
-                          <label for="edit-tool-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">👥Team</label>
+                          <label for="edit-tool-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Team</label>
                         </div>
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="private" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-tool-visibility-private" />
-                          <label for="edit-tool-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🔒Private</label>
+                          <label for="edit-tool-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Private</label>
                         </div>
                       </div>
                     </div>
@@ -6202,15 +6227,15 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                       <div class="flex gap-x-6 mt-2"> <!-- Add gap-x-6 for more space between radio options -->
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="public" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-gateway-visibility-public" />
-                          <label for="edit-gateway-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🌍Public</label>
+                          <label for="edit-gateway-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Public</label>
                         </div>
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="team" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-gateway-visibility-team" />
-                          <label for="edit-gateway-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">👥Team</label>
+                          <label for="edit-gateway-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Team</label>
                         </div>
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="private" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-gateway-visibility-private" />
-                          <label for="edit-gateway-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🔒Private</label>
+                          <label for="edit-gateway-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Private</label>
                         </div>
                       </div>
                     </div>
@@ -6644,15 +6669,15 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                       <div class="flex gap-x-6 mt-2"> <!-- Add gap-x-6 for more space between radio options -->
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="public" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-visibility-public" />
-                          <label for="edit-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🌍Public</label>
+                          <label for="edit-visibility-public" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Public</label>
                         </div>
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="team" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-visibility-team" />
-                          <label for="edit-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">👥Team</label>
+                          <label for="edit-visibility-team" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Team</label>
                         </div>
                         <div class="flex items-center">
                           <input type="radio" name="visibility" value="private" class="form-radio h-5 w-5 figma-blue-txt dark:bg-gray-800 dark:border-gray-600" id="edit-visibility-private" />
-                          <label for="edit-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">🔒Private</label>
+                          <label for="edit-visibility-private" class="ml-2 text-sm text-gray-700 dark:text-gray-400">Private</label>
                         </div>
                       </div>
                     </div>
@@ -6830,8 +6855,8 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
                         class="mt-2 min-h-[1.25rem] text-sm font-semibold text-yellow-600"
                         aria-live="polite"
                       ></div>
-                    </div>
-                  </div> -->
+                    </div> -->
+                  </div>
                   <div
                     class="mt-6 flex justify-end space-x-3 bg-white dark:bg-gray-900 dark:text-gray-100"
                   >
@@ -6855,6 +6880,7 @@ Hello &#123;&#123; name &#125;&#125;, welcome to &#123;&#123; company &#125;&#12
           </div>
         </div>
       </div>
+
 
       <!-- Config Selection Modal -->
       <div
