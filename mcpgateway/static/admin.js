@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Set initial state
         updateEditToolUrl();
     }
+
 });
 /**
  * ====================================================================
@@ -244,6 +245,7 @@ function safeSetInnerHTML(element, htmlContent, isTrusted = false) {
 // ===================================================================
 // UTILITY FUNCTIONS - Define these FIRST before anything else
 // ===================================================================
+
 
 // Check for inative items
 function isInactiveChecked(type) {
@@ -947,19 +949,19 @@ function displayMetrics(data) {
         }
 
         // Resources metrics
-        if (data.resources) {
-            const resourcesCard = createMetricsCard(
-                "Resources",
-                data.resources,
-            );
-            metricsContainer.appendChild(resourcesCard);
-        }
+        // if (data.resources) {
+        //     const resourcesCard = createMetricsCard(
+        //         "Resources",
+        //         data.resources,
+        //     );
+        //     metricsContainer.appendChild(resourcesCard);
+        // }
 
         // Prompts metrics
-        if (data.prompts) {
-            const promptsCard = createMetricsCard("Prompts", data.prompts);
-            metricsContainer.appendChild(promptsCard);
-        }
+        // if (data.prompts) {
+        //     const promptsCard = createMetricsCard("Prompts", data.prompts);
+        //     metricsContainer.appendChild(promptsCard);
+        // }
 
         // Gateways metrics
         if (data.gateways) {
@@ -1318,8 +1320,8 @@ function createEnhancedTopPerformersSection(topData) {
 
         const entityTypes = [
             "tools",
-            "resources",
-            "prompts",
+            // "resources",
+            // "prompts",
             "gateways",
             "servers",
         ];
@@ -1496,7 +1498,7 @@ function createTopPerformersTable(entityType, data, isActive) {
         // Name (clickable for drill-down)
         const nameCell = document.createElement("td");
         nameCell.className =
-            "px-6 py-4 whitespace-nowrap text-sm text-indigo-600 dark:text-indigo-400 cursor-pointer";
+            "px-6 py-4 whitespace-nowrap text-sm figma-blue-txt dark:text-indigo-400 cursor-pointer";
         nameCell.textContent = escapeHtml(item.name || "Unknown");
         // nameCell.onclick = () => showDetailedMetrics(entityType, item.id);
         nameCell.setAttribute("role", "button");
@@ -1577,7 +1579,7 @@ function createTab(type, isActive) {
     tab.id = `top-${type}-tab`;
     tab.className = `${
         isActive
-            ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+            ? "figma-nav-selected figma-blue-border figma-blue-txt dark:text-indigo-400"
             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
     } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200 sm:py-4 sm:px-1`;
     tab.textContent = type;
@@ -1594,8 +1596,8 @@ function createTab(type, isActive) {
 function showTopPerformerTab(activeType) {
     const entityTypes = [
         "tools",
-        "resources",
-        "prompts",
+        // "resources",
+        // "prompts",
         "gateways",
         "servers",
     ];
@@ -1609,8 +1611,8 @@ function showTopPerformerTab(activeType) {
             panel.setAttribute("aria-hidden", type !== activeType);
         }
         if (tab) {
-            tab.classList.toggle("border-indigo-500", type === activeType);
-            tab.classList.toggle("text-indigo-600", type === activeType);
+            tab.classList.toggle("figma-blue-border", type === activeType);
+            tab.classList.toggle("figma-blue-txt", type === activeType);
             tab.classList.toggle("dark:text-indigo-400", type === activeType);
             tab.classList.toggle("border-transparent", type !== activeType);
             tab.classList.toggle("text-gray-500", type !== activeType);
@@ -1665,7 +1667,7 @@ function exportMetricsToCSV(topData) {
     ];
     const rows = [];
 
-    ["tools", "resources", "prompts", "gateways", "servers"].forEach((type) => {
+    ["tools", /*"resources", "prompts",*/ "gateways", "servers"].forEach((type) => {
         if (topData[type] && Array.isArray(topData[type])) {
             topData[type].forEach((item, index) => {
                 rows.push([
@@ -4264,9 +4266,10 @@ function showTab(tabName) {
         document.querySelectorAll(".tab-link").forEach((l) => {
             if (l) {
                 l.classList.remove(
-                    "border-indigo-500",
-                    "text-indigo-600",
-                    "dark:text-indigo-500",
+                    "figma-nav-selected",
+                    "figma-blue-border",
+                    "figma-blue-txt",
+                    "dark:figma-blue-txt",
                     "dark:border-indigo-400",
                 );
                 l.classList.add(
@@ -4289,9 +4292,10 @@ function showTab(tabName) {
         const nav = document.querySelector(`[href="#${tabName}"]`);
         if (nav) {
             nav.classList.add(
-                "border-indigo-500",
-                "text-indigo-600",
-                "dark:text-indigo-500",
+                "figma-nav-selected",
+                "figma-blue-border",
+                "figma-blue-txt",
+                "dark:figma-blue-txt",
                 "dark:border-indigo-400",
             );
             nav.classList.remove(
@@ -4693,7 +4697,7 @@ function createParameterForm(parameterCount) {
     nameInput.name = `param_name_${parameterCount}`;
     nameInput.required = true;
     nameInput.className =
-        "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200";
+        "mt-1 textfield border border-gray-300 shadow-sm focus:figma-blue-border focus:ring focus:ring-indigo-200";
 
     // Add validation to name input
     nameInput.addEventListener("blur", function () {
@@ -4720,7 +4724,7 @@ function createParameterForm(parameterCount) {
     const typeSelect = document.createElement("select");
     typeSelect.name = `param_type_${parameterCount}`;
     typeSelect.className =
-        "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200";
+        "mt-1 selectfield rounded-md border border-gray-300 shadow-sm focus:figma-blue-border focus:ring focus:ring-indigo-200";
 
     const typeOptions = [
         { value: "string", text: "String" },
@@ -4756,7 +4760,7 @@ function createParameterForm(parameterCount) {
     const descTextarea = document.createElement("textarea");
     descTextarea.name = `param_description_${parameterCount}`;
     descTextarea.className =
-        "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200";
+        "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:figma-blue-border focus:ring focus:ring-indigo-200";
     descTextarea.rows = 2;
 
     descGroup.appendChild(descLabel);
@@ -4772,7 +4776,7 @@ function createParameterForm(parameterCount) {
     requiredInput.name = `param_required_${parameterCount}`;
     requiredInput.checked = true;
     requiredInput.className =
-        "h-4 w-4 text-indigo-600 border border-gray-300 rounded";
+        "h-4 w-4 figma-blue-txt border border-gray-300 rounded";
 
     const requiredLabel = document.createElement("label");
     requiredLabel.className =
@@ -5351,7 +5355,7 @@ async function testTool(toolId) {
                         input.required =
                             schema.required && schema.required.includes(key);
                         input.className =
-                            "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 text-gray-700 dark:text-gray-300 dark:border-gray-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400";
+                            "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 text-gray-700 dark:text-gray-300 dark:border-gray-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400";
 
                         const itemTypes = Array.isArray(prop.items?.anyOf)
                             ? prop.items.anyOf.map((t) => t.type)
@@ -5455,8 +5459,8 @@ async function testTool(toolId) {
                         schema.required && schema.required.includes(key);
                     fieldInput.className =
                         prop.type === "boolean"
-                            ? "mt-1 h-4 w-4 text-indigo-600 dark:text-indigo-200 border border-gray-300 rounded"
-                            : "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 text-gray-700 dark:text-gray-300 dark:border-gray-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400";
+                            ? "mt-1 h-4 w-4 figma-blue-txt dark:text-indigo-200 border border-gray-300 rounded"
+                            : "mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 text-gray-700 dark:text-gray-300 dark:border-gray-700 dark:focus:border-indigo-400 dark:focus:ring-indigo-400";
 
                     // Set default values here
                     if (prop.default !== undefined) {
@@ -6043,7 +6047,7 @@ function buildPromptTestForm(prompt) {
         input.id = `prompt-arg-${index}`;
         input.name = `arg-${arg.name}`;
         input.className =
-            "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300";
+            "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300";
 
         if (arg.description) {
             input.placeholder = arg.description;
@@ -9418,7 +9422,7 @@ function updateFilterEmptyState(entityType, visibleCount, isFiltering) {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No matching ${entityType}</h3>
-                    <p class="text-gray-500 dark:text-gray-400">No ${entityType} found with the specified tags. Try adjusting your filter or <button onclick="clearTagFilter('${entityType}')" class="text-indigo-600 hover:text-indigo-500 underline">clear the filter</button>.</p>
+                    <p class="text-gray-500 dark:text-gray-400">No ${entityType} found with the specified tags. Try adjusting your filter or <button onclick="clearTagFilter('${entityType}')" class="figma-blue-txt hover:figma-blue-txt underline">clear the filter</button>.</p>
                 </div>
             `;
             tableContainer.appendChild(emptyMessage);
@@ -9510,7 +9514,7 @@ function addAuthHeader(containerId) {
             <input
                 type="text"
                 placeholder="Header Key (e.g., X-API-Key)"
-                class="auth-header-key block w-full rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300 text-sm"
+                class="auth-header-key block w-full rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300 text-sm"
                 oninput="updateAuthHeadersJSON('${containerId}')"
             />
         </div>
@@ -9518,7 +9522,7 @@ function addAuthHeader(containerId) {
             <input
                 type="password"
                 placeholder="Header Value"
-                class="auth-header-value block w-full rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300 text-sm"
+                class="auth-header-value block w-full rounded-md border border-gray-300 dark:border-gray-700 shadow-sm focus:figma-blue-border focus:ring-indigo-500 dark:bg-gray-900 dark:placeholder-gray-300 dark:text-gray-300 text-sm"
                 oninput="updateAuthHeadersJSON('${containerId}')"
             />
         </div>
@@ -9726,11 +9730,10 @@ async function fetchToolsForGateway(gatewayId, gatewayName) {
             button.className =
                 "inline-block bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm mr-2";
 
-            // Show success message - API returns {success: true, message: "..."}
-            const message =
-                result.message ||
-                `Successfully fetched tools from ${gatewayName}`;
-            showSuccessMessage(message);
+            // Show success message
+            showSuccessMessage(
+                `Successfully fetched ${result.tools_created} tools from ${gatewayName}`,
+            );
 
             // Refresh the page to show the new tools
             setTimeout(() => {
@@ -10608,7 +10611,7 @@ async function loadRecentImports() {
  */
 function refreshCurrentTabData() {
     // Find the currently active tab and refresh its data
-    const activeTab = document.querySelector(".tab-link.border-indigo-500");
+    const activeTab = document.querySelector(".tab-link.figma-blue-border");
     if (activeTab) {
         const href = activeTab.getAttribute("href");
         if (href === "#catalog") {
@@ -12576,3 +12579,98 @@ window.selectAllItems = selectAllItems;
 window.selectNoneItems = selectNoneItems;
 window.selectOnlyCustom = selectOnlyCustom;
 window.resetImportSelection = resetImportSelection;
+
+// === Robust Tools toggle initializer (paste at end of admin.js) ===
+(function () {
+  function initToolsToggleRobust() {
+    try {
+      const label = document.querySelector('label[for="toggle-tools"]');
+      const panel = document.querySelector('#tools-panel');
+      // fallback search if structure slightly different
+      const content = panel ? panel.querySelector('.content') : document.querySelector('#tools-panel .content');
+
+      console.log('Tools toggle: init start', { labelExists: !!label, panelExists: !!panel, contentExists: !!content });
+
+      if (!label) {
+        console.warn('Tools toggle: label[for="toggle-tools"] not found — toggle disabled');
+        return;
+      }
+      if (!content) {
+        console.warn('Tools toggle: #tools-panel .content not found — toggle disabled');
+        return;
+      }
+
+      // ensure we don't initialize twice
+      if (label.dataset.toolsToggleInitialized === 'true') {
+        console.log('Tools toggle: already initialized — skipping');
+        // but update display just in case
+        content.style.display = content.classList.contains('open') ? 'block' : 'none';
+        return;
+      }
+
+      // If an inline onclick exists and is intended to handle toggling (user added), do not add duplicate toggle handler.
+      const hasInlineOnclick = !!label.getAttribute('onclick');
+      if (hasInlineOnclick) {
+        console.log('Tools toggle: label has inline onclick — skipping adding extra listener. Syncing display with .open state.');
+        // Make sure visual state reflects current class presence
+        content.style.display = content.classList.contains('open') ? 'block' : 'none';
+        label.dataset.toolsToggleInitialized = 'true';
+        return;
+      }
+
+      // Set initial visibility based on .open
+      const initiallyOpen = content.classList.contains('open');
+      content.style.display = initiallyOpen ? 'block' : 'none';
+      console.log('Tools toggle: initial open?', initiallyOpen);
+
+      // click handler that toggles .open and display (non-destructive)
+      function toggleHandler(e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+        const wasOpen = content.classList.contains('open');
+        content.classList.toggle('open');
+        const nowOpen = content.classList.contains('open');
+
+        // Ensure display matches class
+        content.style.display = nowOpen ? 'block' : 'none';
+
+        console.log('Tools toggle: clicked — wasOpen:', wasOpen, 'nowOpen:', nowOpen);
+
+        // focus first control when opened
+        if (nowOpen) {
+          const first = content.querySelector('input, textarea, select, button');
+          if (first && typeof first.focus === 'function') {
+            try { first.focus(); } catch (e) { /* ignore */ }
+          }
+        }
+      }
+
+      // Add event listeners (preserve other listeners)
+      label.addEventListener('click', toggleHandler, false);
+      label.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          toggleHandler(e);
+        }
+      }, false);
+
+      // mark initialized
+      label.dataset.toolsToggleInitialized = 'true';
+      console.log('✓ Tools toggle (robust) initialized');
+    } catch (err) {
+      console.error('Tools toggle init error:', err);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initToolsToggleRobust);
+  } else {
+    initToolsToggleRobust();
+  }
+})();
+
+if (typeof testTool !== 'undefined') window.testTool = testTool;
+if (typeof viewTool !== 'undefined') window.viewTool = viewTool;
+if (typeof editTool !== 'undefined') window.editTool = editTool;
+
+
